@@ -1,5 +1,7 @@
 # own-your-ai
 
+[日本語版はこちら](README_ja.md)
+
 > Your AI. Your data. Your rules.
 
 **#MyAI #DigitalSovereignty #3rdWayAI**
