@@ -86,6 +86,26 @@ The governance primitives built for organizations (signed audit trails, privacy 
 
 ---
 
-## Status
+## Status — Phase 1: Foundation ✅
 
-🔲 Pre-implementation. Architecture and legal framework defined. See [roadmap](https://github.com/tiktax/ai-infra-portfolio/blob/main/docs/roadmap.md) (Phase 8).
+The crypto skeleton works end-to-end:
+
+```bash
+pip install -e ".[dev]"
+
+oya init                              # generate human/ai keypairs
+oya sign -m "hello world" --as human  # signed entry appended to ~/.ownyourai/audit.jsonl
+oya audit list                        # inspect the log
+oya verify                            # ECDSA + hash-chain integrity check
+oya export                            # GDPR Art.20 portable JSON dump
+```
+
+**What's next**: see [docs/roadmap.md](docs/roadmap.md). Phase 2 adds passphrase-encrypted keys and macOS Keychain integration; Phase 3 wires `oya` to an on-device LLM.
+
+**Documentation**:
+- [docs/architecture.md](docs/architecture.md) — 5-layer design
+- [docs/threat-model.md](docs/threat-model.md) — STRIDE for personal scale
+- [docs/legal-matrix.md](docs/legal-matrix.md) — EU AI Act / GDPR / CCPA / APPI mapping
+- [docs/decisions/](docs/decisions/) — ADRs
+
+**Relationship to [ai-infra-portfolio](https://github.com/tiktax/ai-infra-portfolio)**: this project is its Phase 8 — same governance primitives, pointed at the individual instead of the organization.

@@ -1,0 +1,28 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "notion-db-id"
+description = "Notion Database/Page UUID"
+regex = '''[0-9a-f]{32}'''
+keywords = ["notion"]
+
+[[rules]]
+id = "icloud-path"
+description = "iCloud vault path"
+regex = '''iCloud~[a-zA-Z~]+'''
+
+[[rules]]
+id = "os-username"
+description = "OS username in path"
+regex = '''/Users/[a-zA-Z][a-zA-Z0-9_-]{2,}/'''
+allowlist.regexes = ['''<username>''', '''<home>''']
+
+[[rules]]
+id = "local-ip-port"
+description = "Localhost service endpoint"
+regex = '''127\.0\.0\.1:[0-9]{4,5}'''
+
+[allowlist]
+paths = [".gitleaks.toml", "README.md", "tests/"]
+regexes = ['''127\.0\.0\.1:[0-9]{4,5}''']  # test payloads, not real endpoints

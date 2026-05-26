@@ -84,6 +84,26 @@ AIシステムは今や個人の意思決定——健康・金融・人間関係
 
 ---
 
-## ステータス
+## ステータス — Phase 1: Foundation ✅
 
-🔲 実装前。アーキテクチャと法的フレームワークは定義済み。[ロードマップ](https://github.com/tiktax/ai-infra-portfolio/blob/main/docs/roadmap.md)（Phase 8）を参照。
+暗号スケルトンがエンドツーエンドで動作する:
+
+```bash
+pip install -e ".[dev]"
+
+oya init                              # human/ai 鍵ペア生成
+oya sign -m "hello world" --as human  # ~/.ownyourai/audit.jsonl に署名エントリ追加
+oya audit list                        # ログ確認
+oya verify                            # ECDSA + ハッシュチェーン整合性チェック
+oya export                            # GDPR 第20条 ポータブル JSON 出力
+```
+
+**次のフェーズ**: [docs/roadmap.md](docs/roadmap.md) 参照。Phase 2 はパスフレーズ暗号化鍵 + macOS Keychain 統合、Phase 3 で `oya` をオンデバイス LLM に接続。
+
+**ドキュメント**:
+- [docs/architecture.md](docs/architecture.md) — 5レイヤー設計
+- [docs/threat-model.md](docs/threat-model.md) — 個人スケール STRIDE
+- [docs/legal-matrix.md](docs/legal-matrix.md) — EU AI Act / GDPR / CCPA / 改正個情法 マッピング
+- [docs/decisions/](docs/decisions/) — ADR 群
+
+**[ai-infra-portfolio](https://github.com/tiktax/ai-infra-portfolio) との関係**: 本プロジェクトはその Phase 8 — 同じガバナンス基盤を、組織ではなく個人に向ける。
