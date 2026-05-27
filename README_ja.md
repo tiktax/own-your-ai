@@ -91,18 +91,20 @@ AIシステムは今や個人の意思決定——健康・金融・人間関係
 | Phase 1 — Foundation | `v0.1.0` | ECDSA 監査ログ CLI（`oya init/sign/verify/audit/export`） |
 | Phase 1.x — パスフレーズ暗号化 | `v0.1.1` | 秘密鍵を `BestAvailableEncryption` で静的暗号化 |
 | Phase 2 — did:key base58btc | `v0.2.0` | W3C DID Core 仕様準拠の `did:key:z...` 識別子 |
+| Phase 3 — オンデバイス LLM | `v0.3.0` | `oya chat` — ollama REPL + 署名付き監査ログ |
 
 ```bash
 pip install -e ".[dev]"
 
 oya init                              # 鍵ペア生成（パスフレーズを要求）
 oya sign -m "hello world" --as human  # ~/.ownyourai/audit.jsonl に署名エントリ追加
+oya chat --model gemma3               # ollama を使ったインタラクティブ REPL
 oya audit list                        # ログ確認
 oya verify                            # ECDSA + ハッシュチェーン整合性チェック
 oya export                            # GDPR 第20条 ポータブル JSON 出力
 ```
 
-**次のフェーズ**: [docs/roadmap.md](docs/roadmap.md) 参照。Phase 3 で `oya chat` — オンデバイス LLM に接続。
+**次のフェーズ**: [docs/roadmap.md](docs/roadmap.md) 参照。Phase 4 は M-of-N ソーシャルリカバリー。
 
 **ドキュメント**:
 - [docs/architecture.md](docs/architecture.md) — 5レイヤー設計

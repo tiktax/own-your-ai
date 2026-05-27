@@ -93,18 +93,20 @@ The governance primitives built for organizations (signed audit trails, privacy 
 | Phase 1 — Foundation | `v0.1.0` | ECDSA audit log CLI (`oya init/sign/verify/audit/export`) |
 | Phase 1.x — Passphrase Encryption | `v0.1.1` | Private keys encrypted at rest (`BestAvailableEncryption`) |
 | Phase 2 — did:key base58btc | `v0.2.0` | W3C DID Core spec-compliant `did:key:z...` identifiers |
+| Phase 3 — On-device LLM | `v0.3.0` | `oya chat` — ollama REPL with signed audit log |
 
 ```bash
 pip install -e ".[dev]"
 
 oya init                              # generate keypairs (prompts for passphrase)
 oya sign -m "hello world" --as human  # signed entry appended to ~/.ownyourai/audit.jsonl
+oya chat --model gemma3               # interactive REPL backed by ollama
 oya audit list                        # inspect the log
 oya verify                            # ECDSA + hash-chain integrity check
 oya export                            # GDPR Art.20 portable JSON dump
 ```
 
-**What's next**: see [docs/roadmap.md](docs/roadmap.md). Phase 3 wires `oya` to an on-device LLM (`oya chat`).
+**What's next**: see [docs/roadmap.md](docs/roadmap.md). Phase 4 adds M-of-N social recovery for identity keys.
 
 **Documentation**:
 - [docs/architecture.md](docs/architecture.md) — 5-layer design

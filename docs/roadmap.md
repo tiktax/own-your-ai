@@ -57,13 +57,18 @@ own-your-ai uses its own Phase numbering starting from Phase 1, because the arch
 - `did:web` support for users who own a domain
 - ADR for Secure Enclave vs Keychain trade-offs
 
-## Phase 3 — On-device LLM Integration
+## Phase 3 — On-device LLM Integration ✅
 
-**Goal**: Every conversation with a local LLM becomes a signed audit entry, automatically.
+**Tag**: `v0.3.0`
 
-- Wrapper around `ollama` / `llama.cpp` that pipes prompts and responses through `audit/log.py`
-- Gemma3-class model as the reference target
-- `oya chat` subcommand
+| Deliverable | Status |
+|---|---|
+| `oya chat` interactive REPL (ollama backend) | ✅ |
+| `--log-level none/summary/full` (default: summary) | ✅ |
+| Gemma3-class model as reference target | ✅ |
+| ADR-0007 | ✅ |
+
+**Deferred to Phase 3.x**: streaming output, llama.cpp/OpenAI-compatible backends, persistent conversation history.
 
 ## Phase 4 — Social Recovery
 

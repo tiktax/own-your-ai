@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from . import __version__
-from .commands import audit, export, init, sign, verify
+from .commands import audit, chat, export, init, sign, verify
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify.register(subparsers)
     audit.register(subparsers)
     export.register(subparsers)
+    chat.register(subparsers)
     return parser
 
 
