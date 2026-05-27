@@ -1,5 +1,7 @@
 """`oya init` — generate human/ai keypairs and scaffold ~/.ownyourai/."""
 
+import getpass
+import os
 import sys
 
 from .. import config
@@ -19,6 +21,26 @@ did_method = "key"
 """
 
 
+def _resolve_passphrase(no_passphrase: bool) -> bytes | None:
+    """Return passphrase bytes or None (no encryption). Returns None on mismatch error."""
+    if no_passphrase:
+        return None
+    env = os.environ.get("OWNYOURAI_PASSPHRASE")
+    if env is not None:
+        return env.encode() if env else None
+    phrase = getpass.getpass("Passphrase for keys (empty = no encryption): ")
+    if not phrase:
+        print("warning: keys will be stored without passphrase encryption", file=sys.stderr)
+        return None
+    confirm = getpass.getpass("Confirm passphrase: ")
+    if phrase != confirm:
+        return _MISMATCH
+    return phrase.encode()
+
+
+_MISMATCH = object()
+
+
 def run(args) -> int:
     home = config.home_dir()
     keys = config.keys_dir()
@@ -30,12 +52,18 @@ def run(args) -> int:
         )
         return 1
 
+    passphrase_result = _resolve_passphrase(getattr(args, "no_passphrase", False))
+    if passphrase_result is _MISMATCH:
+        print("error: passphrases do not match", file=sys.stderr)
+        return 1
+    passphrase: bytes | None = passphrase_result  # type: ignore[assignment]
+
     keys.mkdir(parents=True, exist_ok=True)
 
     for role in ("human", "ai"):
         priv_path = config.private_key_path(role)
         pub_path = config.public_key_path(role)
-        private_pem, public_pem = generate_keypair()
+        private_pem, public_pem = generate_keypair(passphrase=passphrase)
         priv_path.write_bytes(private_pem)
         priv_path.chmod(0o600)
         pub_path.write_bytes(public_pem)
@@ -48,6 +76,7 @@ def run(args) -> int:
 
     print(f"\ninitialized: {home}")
     print(f"  keys:      {keys}")
+    print(f"  encrypted: {'yes' if passphrase else 'no (--no-passphrase)'}")
     print(f"  audit log: {config.audit_log_path()} (will be created on first sign)")
     return 0
 
@@ -55,4 +84,10 @@ def run(args) -> int:
 def register(subparsers) -> None:
     p = subparsers.add_parser("init", help="initialize ~/.ownyourai/ with keypairs")
     p.add_argument("--force", action="store_true", help="overwrite existing data")
+    p.add_argument(
+        "--no-passphrase",
+        action="store_true",
+        dest="no_passphrase",
+        help="skip passphrase encryption (insecure; for testing/CI only)",
+    )
     p.set_defaults(func=run)

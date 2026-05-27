@@ -14,7 +14,7 @@ def home(tmp_path, monkeypatch):
 
 
 def test_init_creates_keys(home):
-    assert cli.main(["init"]) == 0
+    assert cli.main(["init", "--no-passphrase"]) == 0
     assert (home / "keys" / "human_private_key.pem").exists()
     assert (home / "keys" / "human_public_key.pem").exists()
     assert (home / "keys" / "ai_private_key.pem").exists()
@@ -23,27 +23,27 @@ def test_init_creates_keys(home):
 
 
 def test_init_refuses_overwrite_without_force(home, capsys):
-    cli.main(["init"])
-    rc = cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
+    rc = cli.main(["init", "--no-passphrase"])
     captured = capsys.readouterr()
     assert rc == 1
     assert "already exists" in captured.err
 
 
 def test_init_force_overwrites(home):
-    cli.main(["init"])
-    assert cli.main(["init", "--force"]) == 0
+    cli.main(["init", "--no-passphrase"])
+    assert cli.main(["init", "--force", "--no-passphrase"]) == 0
 
 
 def test_sign_verify_roundtrip(home):
-    cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
     assert cli.main(["sign", "-m", "test message", "--as", "human"]) == 0
     assert cli.main(["sign", "-m", "ai message", "--as", "ai"]) == 0
     assert cli.main(["verify"]) == 0
 
 
 def test_audit_list(home, capsys):
-    cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
     cli.main(["sign", "-m", "first", "--as", "human"])
     cli.main(["sign", "-m", "second", "--as", "ai"])
     capsys.readouterr()  # clear
@@ -57,7 +57,7 @@ def test_audit_list(home, capsys):
 
 
 def test_audit_show_specific_line(home, capsys):
-    cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
     cli.main(["sign", "-m", "hello", "--as", "human"])
     capsys.readouterr()
 
@@ -69,13 +69,13 @@ def test_audit_show_specific_line(home, capsys):
 
 
 def test_audit_show_out_of_range(home):
-    cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
     cli.main(["sign", "-m", "hello", "--as", "human"])
     assert cli.main(["audit", "show", "99"]) == 1
 
 
 def test_export_outputs_valid_json(home, capsys):
-    cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
     cli.main(["sign", "-m", "exported", "--as", "human"])
     capsys.readouterr()
 
@@ -92,8 +92,15 @@ def test_sign_fails_without_init(home, capsys):
     assert "private key not found" in capsys.readouterr().err
 
 
+def test_passphrase_encrypted_roundtrip(home, monkeypatch, capsys):
+    monkeypatch.setenv("OWNYOURAI_PASSPHRASE", "testpass")
+    assert cli.main(["init"]) == 0
+    assert cli.main(["sign", "-m", "encrypted key test", "--as", "human"]) == 0
+    assert cli.main(["verify"]) == 0
+
+
 def test_verify_detects_tampering(home, tmp_path):
-    cli.main(["init"])
+    cli.main(["init", "--no-passphrase"])
     cli.main(["sign", "-m", "original", "--as", "human"])
 
     log = home / "audit.jsonl"

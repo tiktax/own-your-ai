@@ -49,3 +49,21 @@ def test_signature_is_deterministic_format():
     # Signature is a hex string
     assert isinstance(signed["signature"], str)
     bytes.fromhex(signed["signature"])  # raises if not valid hex
+
+
+def test_generate_keypair_with_passphrase():
+    passphrase = b"s3cr3t"
+    priv, pub = generate_keypair(passphrase=passphrase)
+    # Encrypted PEM contains ENCRYPTED header
+    assert b"ENCRYPTED" in priv
+    # Signing with correct passphrase works
+    signed = sign_operation_log({"action": "test"}, priv, passphrase=passphrase)
+    assert verify_signature(signed, pub) is True
+
+
+def test_generate_keypair_wrong_passphrase_fails():
+    import pytest
+
+    priv, _ = generate_keypair(passphrase=b"correct")
+    with pytest.raises((ValueError, TypeError)):
+        sign_operation_log({"action": "test"}, priv, passphrase=b"wrong")

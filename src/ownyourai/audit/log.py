@@ -53,6 +53,7 @@ def append_entry(
     operator_type: str,
     private_key_pem: bytes,
     action: str = "log",
+    passphrase: bytes | None = None,
 ) -> dict:
     """Sign and append a new entry to the audit log. Returns the signed entry."""
     if operator_type not in ("AI", "HUMAN"):
@@ -67,7 +68,7 @@ def append_entry(
         "message": message,
         "prev_hash": _last_hash(log_path),
     }
-    signed = sign_operation_log(entry, private_key_pem)
+    signed = sign_operation_log(entry, private_key_pem, passphrase=passphrase)
 
     with log_path.open("a") as f:
         f.write(json.dumps(signed, sort_keys=True, separators=(",", ":")) + "\n")

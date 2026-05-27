@@ -41,13 +41,22 @@ def _canonical_payload(log_entry: dict) -> bytes:
     return json.dumps(entry_copy, sort_keys=True, separators=(",", ":")).encode()
 
 
-def generate_keypair() -> tuple[bytes, bytes]:
-    """Generate a new ECDSA P-256 keypair and return (private_pem, public_pem)."""
+def generate_keypair(passphrase: bytes | None = None) -> tuple[bytes, bytes]:
+    """Generate a new ECDSA P-256 keypair and return (private_pem, public_pem).
+
+    If passphrase is provided, the private key PEM is encrypted with
+    BestAvailableEncryption. Pass passphrase=None (default) for no encryption.
+    """
     private_key = ec.generate_private_key(ec.SECP256R1())
+    encryption = (
+        serialization.BestAvailableEncryption(passphrase)
+        if passphrase is not None
+        else serialization.NoEncryption()
+    )
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+        encryption_algorithm=encryption,
     )
     public_pem = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
@@ -56,7 +65,9 @@ def generate_keypair() -> tuple[bytes, bytes]:
     return private_pem, public_pem
 
 
-def sign_operation_log(log_entry: dict, private_key_pem: bytes) -> dict:
+def sign_operation_log(
+    log_entry: dict, private_key_pem: bytes, passphrase: bytes | None = None
+) -> dict:
     """
     Sign an operation log entry with ECDSA P-256.
 
@@ -65,7 +76,7 @@ def sign_operation_log(log_entry: dict, private_key_pem: bytes) -> dict:
     if "timestamp" not in log_entry:
         log_entry = {**log_entry, "timestamp": datetime.now(UTC).isoformat()}
 
-    private_key = _load_private_key(private_key_pem)
+    private_key = _load_private_key(private_key_pem, password=passphrase)
     public_key_pem = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,

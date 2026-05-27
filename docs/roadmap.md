@@ -29,6 +29,18 @@ own-your-ai uses its own Phase numbering starting from Phase 1, because the arch
 
 **Tag**: `v0.1.0-foundation`
 
+## Phase 1.x — Passphrase Encryption ✅
+
+**Tag**: `v0.1.1`
+
+| Deliverable | Status |
+|---|---|
+| `BestAvailableEncryption` for private key PEMs | ✅ |
+| `oya init` passphrase prompt (interactive + `OWNYOURAI_PASSPHRASE` env) | ✅ |
+| `--no-passphrase` flag for testing/CI | ✅ |
+| `oya sign` auto-detects encrypted keys | ✅ |
+| ADR-0005 | ✅ |
+
 ## Phase 2 — Identity & Keystore
 
 **Goal**: Keys live somewhere the OS protects, DIDs are interoperable.
