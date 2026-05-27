@@ -9,7 +9,6 @@ from ..audit.log import append_entry
 from ..llm.ollama import OllamaError, list_models
 from ..llm.ollama import chat as ollama_chat
 
-DEFAULT_MODEL = "gemma3"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 
 
@@ -50,6 +49,17 @@ def run(args) -> int:
     except OllamaError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+    # Auto-detect model if not specified
+    if model is None:
+        if not available:
+            print(
+                "error: no models found in ollama. Run `ollama pull <model>` first.",
+                file=sys.stderr,
+            )
+            return 1
+        model = available[0]
+        print(f"Auto-selected model: {model}")
 
     print(f"Connected to ollama (model: {model})")
     if available and not any(m == model or m.startswith(model + ":") for m in available):
@@ -141,8 +151,8 @@ def register(subparsers) -> None:
     p = subparsers.add_parser("chat", help="interactive chat with a local LLM via ollama")
     p.add_argument(
         "--model",
-        default=DEFAULT_MODEL,
-        help=f"ollama model name (default: {DEFAULT_MODEL})",
+        default=None,
+        help="ollama model name (default: auto-detect first available)",
     )
     p.add_argument(
         "--ollama-url",
