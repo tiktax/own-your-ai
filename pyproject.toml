@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ownyourai"
-version = "0.1.0"
+version = "0.2.0"
 description = "Your AI. Your data. Your rules. — Individual AI & Data Sovereignty."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "cryptography>=42.0",
+    "base58>=2.1",
 ]
 
 [project.optional-dependencies]

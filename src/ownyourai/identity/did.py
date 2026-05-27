@@ -1,18 +1,19 @@
 """
-identity/did.py — did:key stub.
+identity/did.py — did:key derivation for ECDSA P-256 public keys.
 
-Phase 1 implements only did:key derivation from an ECDSA P-256 public key.
-did:web, did:peer, did:ion are deferred to Phase 2.
+Phase 2 implements spec-compliant did:key using base58btc multibase encoding.
+did:web, did:peer, did:ion are deferred to a later phase.
 
 See docs/decisions/0002-did-method-deferred.md
+    docs/decisions/0006-did-key-base58btc.md
 """
 
-import base64
 import hashlib
 
+import base58
 from cryptography.hazmat.primitives import serialization
 
-# Multicodec prefix for P-256 public key: 0x1200
+# Multicodec prefix for P-256 public key: 0x1200 encoded as unsigned varint → 0x80 0x24
 _P256_MULTICODEC_PREFIX = b"\x80\x24"
 
 
@@ -20,11 +21,8 @@ def derive_did_key(public_key_pem: bytes) -> str:
     """
     Derive a did:key identifier from an ECDSA P-256 public key (PEM).
 
-    This is a stub implementation: it concatenates a multicodec prefix
-    with the raw public key bytes and encodes as multibase (base58btc 'z' prefix
-    is the formal spec; we use base64url 'u' here for simplicity in Phase 1).
-
-    A formal did:key implementation will replace this in Phase 2.
+    Encoding: multicodec prefix (0x1200) + compressed P-256 point,
+    encoded as multibase base58btc ('z' prefix) per W3C DID Core spec.
     """
     pub = serialization.load_pem_public_key(public_key_pem)
     raw = pub.public_bytes(
@@ -32,8 +30,8 @@ def derive_did_key(public_key_pem: bytes) -> str:
         format=serialization.PublicFormat.CompressedPoint,
     )
     payload = _P256_MULTICODEC_PREFIX + raw
-    encoded = base64.urlsafe_b64encode(payload).rstrip(b"=").decode()
-    return f"did:key:u{encoded}"
+    encoded = base58.b58encode(payload).decode()
+    return f"did:key:z{encoded}"
 
 
 def fingerprint(public_key_pem: bytes) -> str:

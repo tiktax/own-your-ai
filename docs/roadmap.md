@@ -41,13 +41,19 @@ own-your-ai uses its own Phase numbering starting from Phase 1, because the arch
 | `oya sign` auto-detects encrypted keys | ✅ |
 | ADR-0005 | ✅ |
 
-## Phase 2 — Identity & Keystore
+## Phase 2 — Identity & Keystore ✅
 
-**Goal**: Keys live somewhere the OS protects, DIDs are interoperable.
+**Tag**: `v0.2.0`
 
-- Encrypt private key PEMs with a user passphrase (immediate Phase 1.x patch)
+| Deliverable | Status |
+|---|---|
+| `did:key` base58btc (W3C DID Core spec-compliant) | ✅ |
+| ADR-0006 | ✅ |
+
+**Breaking change**: `did:key:u...` (Phase 1) → `did:key:z...` (Phase 2). Re-run `oya init --force` to regenerate keys.
+
+**Deferred to Phase 3**:
 - macOS Keychain wrapper for `~/.ownyourai/keys/`
-- Formal `did:key` (base58btc multibase, not base64url stub)
 - `did:web` support for users who own a domain
 - ADR for Secure Enclave vs Keychain trade-offs
 
