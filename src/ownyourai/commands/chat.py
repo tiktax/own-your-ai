@@ -1,38 +1,22 @@
 """`oya chat` — interactive REPL backed by a local ollama LLM."""
 
-import getpass
-import os
 import sys
 
 from .. import config
 from ..audit.log import append_entry
+from ..crypto.passphrase import resolve_passphrase
 from ..llm.ollama import OllamaError, list_models
 from ..llm.ollama import chat as ollama_chat
 
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 
 
-def _resolve_passphrase(no_passphrase: bool, sample_priv: bytes) -> bytes | None:
-    if no_passphrase:
-        return None
-    try:
-        from cryptography.hazmat.primitives import serialization
-
-        serialization.load_pem_private_key(sample_priv, password=None)
-        return None
-    except (TypeError, ValueError):
-        pass
-    env = os.environ.get("OWNYOURAI_PASSPHRASE")
-    if env is not None:
-        return env.encode() if env else None
-    phrase = getpass.getpass("Passphrase: ")
-    return phrase.encode() if phrase else None
-
-
 def run(args) -> int:
     model: str = args.model
     base_url: str = args.ollama_url
     log_level: str = args.log_level
+    timeout: int = args.timeout
+    max_history: int = args.max_history
 
     human_priv_path = config.private_key_path("human")
     ai_priv_path = config.private_key_path("ai")
@@ -42,7 +26,7 @@ def run(args) -> int:
 
     human_priv = human_priv_path.read_bytes()
     ai_priv = ai_priv_path.read_bytes()
-    passphrase = _resolve_passphrase(getattr(args, "no_passphrase", False), human_priv)
+    passphrase = resolve_passphrase(human_priv, no_passphrase=getattr(args, "no_passphrase", False))
 
     try:
         available = list_models(base_url)
@@ -100,8 +84,14 @@ def run(args) -> int:
             )
 
         history.append({"role": "user", "content": user_input})
+        # Trim context window to avoid exceeding model limits.
+        # After slicing, drop any leading assistant turns so the context always
+        # starts with a user message (required by most LLM APIs).
+        trimmed = history[-(max_history * 2):] if max_history > 0 else history
+        while trimmed and trimmed[0]["role"] != "user":
+            trimmed = trimmed[1:]
         try:
-            response = ollama_chat(history, model=model, base_url=base_url)
+            response = ollama_chat(trimmed, model=model, base_url=base_url, timeout=timeout)
         except OllamaError as exc:
             print(f"error: {exc}", file=sys.stderr)
             history.pop()
@@ -172,5 +162,18 @@ def register(subparsers) -> None:
         choices=("none", "summary", "full"),
         default="summary",
         help="audit log granularity: none | summary (default) | full",
+    )
+    p.add_argument(
+        "--timeout",
+        type=int,
+        default=120,
+        help="ollama response timeout in seconds (default: 120)",
+    )
+    p.add_argument(
+        "--max-history",
+        dest="max_history",
+        type=int,
+        default=50,
+        help="max conversation turns to keep in context window (default: 50, 0=unlimited)",
     )
     p.set_defaults(func=run)

@@ -16,8 +16,10 @@ Differences from upstream:
     - Paths come from ownyourai.config, not hardcoded ITIL5 paths
 """
 
+import fcntl
 import hashlib
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -55,23 +57,48 @@ def append_entry(
     action: str = "log",
     passphrase: bytes | None = None,
 ) -> dict:
-    """Sign and append a new entry to the audit log. Returns the signed entry."""
+    """Sign and append a new entry to the audit log. Returns the signed entry.
+
+    Uses fcntl.flock for exclusive locking so concurrent oya processes cannot
+    produce hash-chain forks. Also calls fsync before releasing the lock to
+    guarantee durability on crash.
+    """
     if operator_type not in ("AI", "HUMAN"):
         raise ValueError(f"operator_type must be 'AI' or 'HUMAN', got {operator_type!r}")
 
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # os.open(O_RDWR | O_CREAT, 0o600) below handles atomic file creation with
+    # correct permissions — no separate touch() needed.
 
-    entry = {
+    entry: dict = {
         "timestamp": datetime.now(UTC).isoformat(),
         "operator_type": operator_type,
         "action": action,
         "message": message,
-        "prev_hash": _last_hash(log_path),
+        # prev_hash is determined while holding the exclusive lock (see below)
     }
-    signed = sign_operation_log(entry, private_key_pem, passphrase=passphrase)
 
-    with log_path.open("a") as f:
-        f.write(json.dumps(signed, sort_keys=True, separators=(",", ":")) + "\n")
+    fd = os.open(str(log_path), os.O_RDWR | os.O_CREAT, 0o600)
+    with os.fdopen(fd, "r+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            # Read the last line while holding the lock (prevents race with another writer)
+            last_line = ""
+            for line in f:
+                stripped = line.strip()
+                if stripped:
+                    last_line = stripped
+            prev_hash = _hash_line(last_line) if last_line else GENESIS
+
+            entry["prev_hash"] = prev_hash
+            signed = sign_operation_log(entry, private_key_pem, passphrase=passphrase)
+
+            f.seek(0, 2)  # seek to end for append
+            f.write(json.dumps(signed, sort_keys=True, separators=(",", ":")) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
 
     return signed
 

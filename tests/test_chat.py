@@ -172,3 +172,64 @@ def test_chat_fails_without_init(tmp_path, monkeypatch, capsys):
     rc = cli.main(["chat", "--no-passphrase"])
     assert rc == 1
     assert "oya init" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# --timeout and --max-history flag tests
+# ---------------------------------------------------------------------------
+
+
+def test_chat_default_timeout_is_120(chat_home):
+    """Default --timeout is 120 seconds; value is passed to ollama.chat()."""
+    call_kwargs = {}
+
+    def fake_chat(messages, model, base_url=None, timeout=None):
+        call_kwargs["timeout"] = timeout
+        return "ok"
+
+    with (
+        patch("urllib.request.urlopen", return_value=_mock_urlopen(_TAGS_OK)),
+        patch("ownyourai.commands.chat.ollama_chat", side_effect=fake_chat),
+        patch("builtins.input", side_effect=["hello", "q"]),
+    ):
+        cli.main(["chat", "--no-passphrase", "--log-level", "none"])
+
+    assert call_kwargs.get("timeout") == 120
+
+
+def test_chat_custom_timeout(chat_home):
+    """--timeout 60 is forwarded to ollama.chat()."""
+    call_kwargs = {}
+
+    def fake_chat(messages, model, base_url=None, timeout=None):
+        call_kwargs["timeout"] = timeout
+        return "ok"
+
+    with (
+        patch("urllib.request.urlopen", return_value=_mock_urlopen(_TAGS_OK)),
+        patch("ownyourai.commands.chat.ollama_chat", side_effect=fake_chat),
+        patch("builtins.input", side_effect=["hello", "q"]),
+    ):
+        cli.main(["chat", "--no-passphrase", "--log-level", "none", "--timeout", "60"])
+
+    assert call_kwargs.get("timeout") == 60
+
+
+def test_chat_max_history_truncates(chat_home):
+    """--max-history 1 keeps only the last 1×2 = 2 messages in context."""
+    seen_lengths = []
+
+    def fake_chat(messages, model, base_url=None, timeout=None):
+        seen_lengths.append(len(messages))
+        return "ok"
+
+    # 3 turns; with max_history=1 the context sent to ollama after turn 2 should be ≤ 2
+    with (
+        patch("urllib.request.urlopen", return_value=_mock_urlopen(_TAGS_OK)),
+        patch("ownyourai.commands.chat.ollama_chat", side_effect=fake_chat),
+        patch("builtins.input", side_effect=["turn1", "turn2", "turn3", "q"]),
+    ):
+        cli.main(["chat", "--no-passphrase", "--log-level", "none", "--max-history", "1"])
+
+    # After the first turn history has 2 messages; subsequent turns must stay ≤ 2
+    assert all(length <= 2 for length in seen_lengths[1:]), f"history not truncated: {seen_lengths}"

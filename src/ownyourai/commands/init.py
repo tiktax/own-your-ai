@@ -58,7 +58,8 @@ def run(args) -> int:
         return 1
     passphrase: bytes | None = passphrase_result  # type: ignore[assignment]
 
-    keys.mkdir(parents=True, exist_ok=True)
+    home.mkdir(mode=0o700, parents=True, exist_ok=True)
+    keys.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     for role in ("human", "ai"):
         priv_path = config.private_key_path(role)

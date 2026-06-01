@@ -86,6 +86,33 @@ The governance primitives built for organizations (signed audit trails, privacy 
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Install
+pip install own-your-ai
+
+# 2. Pull a local model (choose one)
+ollama pull llama3.2          # recommended: fast, ~2GB
+# ollama pull gemma2:2b       # smaller, ~1.5GB
+
+# 3. Initialize and chat
+oya init
+oya chat
+# You: What is 2+2?
+# Assistant: 4.
+# You: q
+# Session ended. 1 turns, 1 log entry.
+
+# Inspect your tamper-evident audit log
+oya audit summary
+oya verify
+```
+
+> **Prerequisites**: Python 3.11+, [ollama](https://ollama.com) running locally.
+
+---
+
 ## Status
 
 | Phase | Tag | What shipped |

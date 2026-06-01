@@ -1,27 +1,10 @@
 """`oya sign` — sign a message and append it to the audit log."""
 
-import getpass
-import os
 import sys
 
 from .. import config
 from ..audit.log import append_entry
-
-
-def _resolve_passphrase(priv_pem: bytes) -> bytes | None:
-    """Detect if key is encrypted; return passphrase bytes or None."""
-    try:
-        from cryptography.hazmat.primitives import serialization
-
-        serialization.load_pem_private_key(priv_pem, password=None)
-        return None  # key is not encrypted
-    except (TypeError, ValueError):
-        pass  # key is encrypted — need passphrase
-    env = os.environ.get("OWNYOURAI_PASSPHRASE")
-    if env is not None:
-        return env.encode() if env else None
-    phrase = getpass.getpass("Passphrase: ")
-    return phrase.encode() if phrase else None
+from ..crypto.passphrase import resolve_passphrase
 
 
 def run(args) -> int:
@@ -35,7 +18,7 @@ def run(args) -> int:
         return 1
 
     priv_pem = priv_path.read_bytes()
-    passphrase = _resolve_passphrase(priv_pem)
+    passphrase = resolve_passphrase(priv_pem, no_passphrase=getattr(args, "no_passphrase", False))
 
     entry = append_entry(
         config.audit_log_path(),
@@ -64,4 +47,10 @@ def register(subparsers) -> None:
         help="signing identity (default: human)",
     )
     p.add_argument("--action", default="log", help="action label (default: log)")
+    p.add_argument(
+        "--no-passphrase",
+        action="store_true",
+        dest="no_passphrase",
+        help="skip passphrase prompt (for unencrypted keys)",
+    )
     p.set_defaults(func=run)

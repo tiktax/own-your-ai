@@ -1,6 +1,7 @@
 """Tests for ownyourai.audit.log."""
 
 import json
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -99,3 +100,92 @@ def test_invalid_operator_type_rejected(tmp_path, keys):
 def test_read_entries_empty(tmp_path):
     log = tmp_path / "audit.jsonl"
     assert read_entries(log) == []
+
+
+# ---------------------------------------------------------------------------
+# oya audit summary subcommand tests
+# ---------------------------------------------------------------------------
+
+
+def test_audit_summary_shows_counts(tmp_path, keys, monkeypatch, capsys):
+    """summary prints total entries and conversation count."""
+    from ownyourai import cli, config
+
+    monkeypatch.setenv("OWNYOURAI_HOME", str(tmp_path / "oya-home"))
+    cli.main(["init", "--no-passphrase"])
+
+    log = config.audit_log_path()
+    append_entry(log, message="s1", operator_type="HUMAN", private_key_pem=keys["human_priv"],
+                 action="chat_session")
+    append_entry(log, message="p1", operator_type="HUMAN", private_key_pem=keys["human_priv"],
+                 action="chat_prompt")
+    append_entry(log, message="r1", operator_type="AI", private_key_pem=keys["ai_priv"],
+                 action="chat_response")
+
+    rc = cli.main(["audit", "summary"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "3" in out   # total entries
+    assert "2" in out   # conversations (chat_session + chat_prompt)
+
+
+def test_audit_summary_empty(tmp_path, monkeypatch, capsys):
+    """summary with empty log prints a helpful message."""
+    from ownyourai import cli
+
+    monkeypatch.setenv("OWNYOURAI_HOME", str(tmp_path / "oya-home"))
+    cli.main(["init", "--no-passphrase"])
+
+    rc = cli.main(["audit", "summary"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "No audit entries" in out
+
+
+# ---------------------------------------------------------------------------
+# oya audit anchor subcommand tests
+# ---------------------------------------------------------------------------
+
+
+def test_audit_anchor_succeeds(tmp_path, keys, monkeypatch, capsys):
+    """anchor writes timestamps.jsonl and prints token info."""
+    import json as _json
+
+    from ownyourai import cli, config
+
+    monkeypatch.setenv("OWNYOURAI_HOME", str(tmp_path / "oya-home"))
+    cli.main(["init", "--no-passphrase"])
+
+    log = config.audit_log_path()
+    append_entry(log, message="hello", operator_type="HUMAN", private_key_pem=keys["human_priv"])
+
+    fake_token = b"\x30\x10" + b"\x00" * 14
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = fake_token
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = MagicMock(return_value=False)
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        rc = cli.main(["audit", "anchor"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "anchored_at" in out
+
+    ts_store = config.home_dir() / "timestamps.jsonl"
+    assert ts_store.exists()
+    saved = _json.loads(ts_store.read_text().strip())
+    assert saved["token_hex"] == fake_token.hex()
+
+
+def test_audit_anchor_fails_without_log(tmp_path, monkeypatch, capsys):
+    """anchor returns rc=1 when audit log is missing."""
+    from ownyourai import cli
+
+    monkeypatch.setenv("OWNYOURAI_HOME", str(tmp_path / "oya-home"))
+    cli.main(["init", "--no-passphrase"])
+
+    rc = cli.main(["audit", "anchor"])
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "empty or does not exist" in err
